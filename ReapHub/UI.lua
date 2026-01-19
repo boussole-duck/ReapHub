@@ -1,62 +1,60 @@
--- ReapHub Loader (fail-safe)
+local Modules = _G.ReapHubModules
+local State = Modules.State
+local Keybinds = Modules.Keybinds
+local KeyMenu = Modules.KeybindMenu
 
-if _G.ReapHubLoaded then return end
-_G.ReapHubLoaded = true
+local UI = {}
+UI.Objects = {}
 
-local BASE =
-"https://raw.githubusercontent.com/boussole-duck/ReapHub/main/ReapHub/"
+function UI:Init()
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "ReapHub"
+    gui.ResetOnSpawn = false
+    gui.Parent = game:GetService("CoreGui")
 
-local RunService = game:GetService("RunService")
+    local f = Instance.new("Frame", gui)
+    f.Size = UDim2.fromOffset(320,240)
+    f.Position = UDim2.fromScale(0.5,0.5)
+    f.AnchorPoint = Vector2.new(0.5,0.5)
+    f.BackgroundColor3 = Color3.fromRGB(8, 8, 20)
+    f.BorderSizePixel = 0
 
-local function safeHttp(url)
-    local ok, res = pcall(function()
-        return game:HttpGet(url, true)
+    local stroke = Instance.new("UIStroke", f)
+    stroke.Thickness = 2
+    stroke.Color = Color3.fromRGB(0,255,255)
+
+    local function button(text, y)
+        local b = Instance.new("TextButton", f)
+        b.Size = UDim2.new(1,-20,0,40)
+        b.Position = UDim2.fromOffset(10,y)
+        b.Text = text
+        b.Font = Enum.Font.GothamBold
+        b.TextSize = 18
+        b.TextColor3 = Color3.fromRGB(0,255,255)
+        b.BackgroundColor3 = Color3.fromRGB(15,15,35)
+        b.BorderSizePixel = 0
+
+        local c = Instance.new("UICorner", b)
+        c.CornerRadius = UDim.new(0,10)
+
+        return b
+    end
+
+    UI.Objects.Lock = button("LOCK : OFF", 20)
+    UI.Objects.ESP  = button("ESP : OFF", 70)
+    UI.Objects.Key  = button("RE-BIND LOCK (Q)", 130)
+
+    Keybinds:Bind("Lock", Enum.KeyCode.Q, "Toggle", function(v)
+        State.data.lockOn = v
+        UI.Objects.Lock.Text = v and "LOCK : ON" or "LOCK : OFF"
     end)
-    return ok and res or nil
+
+    Keybinds:Bind("ESP", Enum.KeyCode.E, "Toggle", function(v)
+        State.data.esp = v
+        UI.Objects.ESP.Text = v and "ESP : ON" or "ESP : OFF"
+    end)
+
+    KeyMenu:Listen(UI.Objects.Key, Keybinds.Binds.Lock)
 end
 
-local function loadModule(name)
-    local src = safeHttp(BASE .. name .. ".lua")
-    if not src then
-        warn("[ReapHub] Failed to load:", name)
-        return nil
-    end
-
-    local fn = loadstring(src)
-    local ok, mod = pcall(fn, _G.ReapHubModules)
-    if not ok then
-        warn("[ReapHub] Error in module:", name, mod)
-        return nil
-    end
-    return mod
-end
-
-_G.ReapHubModules = {}
-local M = _G.ReapHubModules
-
-M.State        = loadModule("State")
-M.Keybinds     = loadModule("Keybinds")
-M.KeybindMenu  = loadModule("KeybindMenu")
-M.UI           = loadModule("UI")
-M.LockOn       = loadModule("LockOn")
-M.ESP          = loadModule("ESP")
-
-if not M.UI then
-    warn("[ReapHub] UI failed to load")
-    return
-end
-
-pcall(function()
-    M.UI:Init()
-end)
-
-RunService.RenderStepped:Connect(function()
-    if M.LockOn then pcall(function() M.LockOn:Update() end) end
-    if M.ESP then pcall(function() M.ESP:Update() end) end
-end)
-
-_G.ReapHubUnload = function()
-    _G.ReapHubLoaded = false
-    local g = game:GetService("CoreGui"):FindFirstChild("ReapHub")
-    if g then g:Destroy() end
-end
+return UI
