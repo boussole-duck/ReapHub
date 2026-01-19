@@ -60,4 +60,3 @@ _G.ReapHubUnload = function()
     local g = game:GetService("CoreGui"):FindFirstChild("ReapHub")
     if g then g:Destroy() end
 end
-
